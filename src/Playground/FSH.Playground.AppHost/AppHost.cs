@@ -13,7 +13,8 @@ var redisPlainTcp = redis.GetEndpoint("secondary");
 var redisConnectionString = ReferenceExpression.Create(
     $"{redisPlainTcp.Property(EndpointProperty.HostAndPort)},password={redis.Resource.PasswordParameter!}");
 
-builder.AddProject<Projects.Playground_Api>("playground-api")
+// API Service
+var api = builder.AddProject<Projects.Playground_Api>("playground-api")
     .WithReference(postgres)
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
     .WithEnvironment("OpenTelemetryOptions__Exporter__Otlp__Endpoint", "https://localhost:4317")
@@ -28,6 +29,16 @@ builder.AddProject<Projects.Playground_Api>("playground-api")
     .WithEnvironment("CachingOptions__EnableSsl", "false")
     .WaitFor(redis);
 
+// Blazor UI
 builder.AddProject<Projects.Playground_Blazor>("playground-blazor");
+
+// Admin App (Next.js)
+builder.AddJavaScriptApp("fsh-admin", "../../clients/admin", "dev")
+    .WithNpm()
+    .WithReference(api)
+    .WaitFor(api)
+    .WithHttpEndpoint(port: 3000, env: "PORT")
+    .WithExternalHttpEndpoints()
+    .WithEnvironment("FSH_API_URL", api.GetEndpoint("http"));
 
 await builder.Build().RunAsync();
