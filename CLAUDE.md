@@ -49,7 +49,6 @@ Additional module folders: `Domain/`, `Data/`, `Services/`, `Events/`, `Authoriz
 | Caching | Redis (StackExchange) |
 | Jobs | Hangfire |
 | Logging | Serilog + OpenTelemetry (OTLP) |
-| Object mapping | Mapster |
 | API docs | OpenAPI + Scalar |
 | API versioning | Asp.Versioning |
 | Hosting | .NET Aspire (AppHost) |
