@@ -1,9 +1,17 @@
+using Aspire.Hosting.ApplicationModel;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Postgres container + database
 var postgres = builder.AddPostgres("postgres").WithDataVolume("fsh-postgres-data").AddDatabase("fsh");
 
 var redis = builder.AddRedis("redis").WithDataVolume("fsh-redis-data");
+
+// Build a plain TCP (non-TLS) Redis connection string using the secondary endpoint.
+// Aspire 13.x enables TLS on the primary Redis port by default; the secondary endpoint is plain TCP.
+var redisPlainTcp = redis.GetEndpoint("secondary");
+var redisConnectionString = ReferenceExpression.Create(
+    $"{redisPlainTcp.Property(EndpointProperty.HostAndPort)},password={redis.Resource.PasswordParameter!}");
 
 builder.AddProject<Projects.Playground_Api>("playground-api")
     .WithReference(postgres)
@@ -16,8 +24,8 @@ builder.AddProject<Projects.Playground_Api>("playground-api")
     .WithEnvironment("DatabaseOptions__MigrationsAssembly", "FSH.Playground.Migrations.PostgreSQL")
     .WaitFor(postgres)
     .WithReference(redis)
-    .WithEnvironment("CachingOptions__Redis", redis.Resource.ConnectionStringExpression)
-    .WithEnvironment("CachingOptions__EnableSsl", "true")
+    .WithEnvironment("CachingOptions__Redis", redisConnectionString)
+    .WithEnvironment("CachingOptions__EnableSsl", "false")
     .WaitFor(redis);
 
 builder.AddProject<Projects.Playground_Blazor>("playground-blazor");
