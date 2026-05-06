@@ -123,6 +123,25 @@ we skip those and build equivalents in `src/Playground/Playground.Blazor/`.
 
 ---
 
+## Phase 10 (Mixed Commits) — Permission Architecture Refactoring
+
+### 14. PermissionConstants Refactoring — SystemPermissions
+
+Backend-only change; Blazor UI action: **none required, but be aware**.
+
+`PermissionConstants._all` is now empty at startup. Modules call `PermissionConstants.Register()` during `ConfigureServices`. The `Web/Extensions.cs` bootstrapper calls `PermissionConstants.Register(SystemPermissions.All)` to seed platform-level permissions (Hangfire, Dashboard, Platform.Tenants, Platform.Plans, etc.).
+
+If any Blazor page hard-codes a permission string from the old `PermissionConstants` initializer (e.g., `Permissions.Tenants.View`), note that these strings changed: tenants permissions are now under `Platform.Tenants` (e.g., `Platform.Tenants.View`). Fetch the effective permission list from the API rather than maintaining a client-side copy.
+
+### 15. X-FSH-App Header on Token Endpoint
+
+`POST api/v1/identity/tokens` now checks for an optional `X-FSH-App` header.  
+- If `X-FSH-App: dashboard` with `tenant: root` → **403 Forbidden** (SuperAdmin must use the admin app shell).  
+- Blazor never sends this header, so there is **no impact** — the Blazor app can authenticate as SuperAdmin from the root tenant context without any changes.  
+- No UI action needed unless you decide to apply the same app-boundary guard in the Blazor shell.
+
+---
+
 ## Infrastructure (No UI Needed)
 
 | Feature | Reason |
@@ -134,6 +153,8 @@ we skip those and build equivalents in `src/Playground/Playground.Blazor/`.
 | Quota metering (API calls, storage) | Metered server-side — only the display (item 3) needs UI |
 | Webhook Hangfire dispatcher | Background job — no UI beyond delivery history (item 9) |
 | MinIO wiring | Infrastructure — UI is item 2 above |
+| Audit recursion guard | Backend interceptor fix — no UI impact |
+| AccessTokenMinutes 15→45 | Dev config change — no UI change needed |
 
 ---
 
